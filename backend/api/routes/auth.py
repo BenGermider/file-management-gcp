@@ -6,28 +6,32 @@ from urllib.parse import urlencode
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
-from core.consts import GOOGLE_REDIRECT_URI, OAUTH2_URL, GOOGLE_API_TOKEN, GOOGLE_SCOPE
+from core.consts import OAUTH2_URL, GOOGLE_API_TOKEN, GOOGLE_SCOPE
 from core.settings import settings
 
 router = APIRouter(tags=["auth"])
 
 
-GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET
-GOOGLE_REDIRECT_URI = GOOGLE_REDIRECT_URI.format(backend=settings.BACKEND_HOST, port=settings.BACKEND_PORT)
+GOOGLE_ID = settings.GOOGLE_CLIENT_ID
+SECRET = settings.GOOGLE_CLIENT_SECRET
+URI = (
+        f"http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}/"
+        f"api/auth/google/callback"
+)
+
 
 
 @router.get("/google")
 async def google_login():
     params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "client_id": GOOGLE_ID,
+        "redirect_uri": URI,
         "response_type": "code",
         "scope": GOOGLE_SCOPE,
         "access_type": "offline",
         "prompt": "select_account",
     }
-    url = OAUTH2_URL.format(params=params)
+    url = f"{OAUTH2_URL}?{urlencode(params)}"
     return RedirectResponse(url)
 
 
@@ -44,9 +48,9 @@ async def google_callback(request: Request):
             GOOGLE_API_TOKEN,
             data={
                 "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": GOOGLE_REDIRECT_URI,
+                "client_id": GOOGLE_ID,
+                "client_secret": SECRET,
+                "redirect_uri": URI,
                 "grant_type": "authorization_code",
             },
         )
@@ -55,14 +59,14 @@ async def google_callback(request: Request):
     g_token = token_data.get("id_token")
     access_token = token_data.get("access_token")
 
-    if not id_token:
+    if not g_token:
         raise HTTPException(status_code=400, detail="Failed to obtain ID token from Google")
 
     # Decode ID token to get user info
     payload = id_token.verify_oauth2_token(
         g_token,
         requests.Request(),
-        GOOGLE_CLIENT_ID,
+        GOOGLE_ID,
         clock_skew_in_seconds=10
     )
     email = payload.get("email")
