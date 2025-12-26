@@ -6,8 +6,8 @@ from urllib.parse import urlencode
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
-from backend.core.consts import GOOGLE_REDIRECT_URI, OAUTH2_URL, GOOGLE_API_TOKEN, GOOGLE_SCOPE
-from backend.core.settings import settings
+from core.consts import GOOGLE_REDIRECT_URI, OAUTH2_URL, GOOGLE_API_TOKEN, GOOGLE_SCOPE
+from core.settings import settings
 
 router = APIRouter(tags=["auth"])
 

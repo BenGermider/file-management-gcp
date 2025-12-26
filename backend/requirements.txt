@@ -9,3 +9,5 @@ python-jose[cryptography]
 python-dotenv
 google-auth
 requests
+sqlalchemy
+asyncpg

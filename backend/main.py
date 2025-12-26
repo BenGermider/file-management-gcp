@@ -1,9 +1,20 @@
-from sys import prefix
+import asyncio
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.auth import router as auth_router
+from db import init_models, dispose
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    await init_models()
+
+    yield
+
+    await dispose()
 
 app = FastAPI(
     title="File Management API",
@@ -12,8 +23,10 @@ app = FastAPI(
         "The API runs on GCP and uses Firebase, Cloud Storage, and Elasticsearch."
     ),
     version="1.0.0",
-    # lifespan=lifespan
+    lifespan=lifespan
 )
+
+
 
 
 
