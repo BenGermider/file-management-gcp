@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
 from api.routes.admin import router as admin_router
@@ -30,6 +30,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+Instrumentator().instrument(app).expose(app)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,5 +48,7 @@ app.include_router(admin_router, prefix="/api/admin")
 @app.get("/health")
 def hello():
     return {"message": "Hello from backend"}
+
+
 
 

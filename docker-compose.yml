@@ -1,5 +1,4 @@
 services:
-
   db:
     image: postgres:15
     container_name: db
@@ -13,12 +12,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U POSTGRES" ]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
 
-
   backend:
+    restart: always
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -29,13 +28,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads  # Add this - persists uploaded files
 
-#  frontend:
-#    build: ./frontend
-#    ports:
-#      - "3000:80"
-#    depends_on:
-#      - backend
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    env_file:
+      - .env
+
 
 volumes:
   postgres_data:
+
