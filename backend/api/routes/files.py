@@ -9,7 +9,7 @@ from starlette.status import (
     HTTP_400_BAD_REQUEST
 )
 
-router = APIRouter()
+router = APIRouter(tags=["files"])
 
 
 @router.post(

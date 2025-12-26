@@ -67,10 +67,11 @@ class AuthService:
         return payload
 
     @classmethod
-    async def create_app_token(cls, email: str) -> str:
+    async def create_app_token(cls, email: str, name: str) -> str:
         """Create JWT token for your app"""
         payload = {
             "sub": email,
+            "name": name,
             "exp": datetime.utcnow() + timedelta(hours=cls.JWT_EXPIRY_HOURS),
             "iat": datetime.utcnow(),
             "role": await cls._is_admin(email)
@@ -112,6 +113,6 @@ class AuthService:
         user = await cls.get_or_create_user(db, email, name)
 
         # Create app JWT
-        app_token = await cls.create_app_token(email)
+        app_token = await cls.create_app_token(email, name)
 
         return app_token
