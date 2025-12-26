@@ -3,14 +3,18 @@ from fastapi.responses import RedirectResponse
 from urllib.parse import urlencode
 import httpx
 import os
+
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
 from jose import jwt
 
 router = APIRouter(tags=["auth"])
 
 # Load credentials from environment variables
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")          # Must be "Web Application" client ID
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")  # Must be client secret from Google
-GOOGLE_REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"  # Must match Google console
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"
 GOOGLE_SCOPE = "openid email profile"
 
 # -------------------------------
@@ -52,18 +56,18 @@ async def google_callback(request: Request):
         )
         token_data = resp.json()
 
-    id_token = token_data.get("id_token")
+    g_token = token_data.get("id_token")
     access_token = token_data.get("access_token")
 
     if not id_token:
         raise HTTPException(status_code=400, detail="Failed to obtain ID token from Google")
 
     # Decode ID token to get user info
-    payload = jwt.decode(
-        id_token,
-        GOOGLE_CLIENT_ID,        # Verify audience
-        algorithms=["RS256"],
-        options={"verify_aud": True},
+    payload = id_token.verify_oauth2_token(
+        g_token,
+        requests.Request(),
+        GOOGLE_CLIENT_ID,
+        clock_skew_in_seconds=10
     )
     email = payload.get("email")
     name = payload.get("name")
@@ -74,7 +78,7 @@ async def google_callback(request: Request):
     return {
         "email": email,
         "name": name,
-        "id_token": id_token,
+        "id_token": g_token,
         "access_token": access_token,
         "message": "Login successful"
     }

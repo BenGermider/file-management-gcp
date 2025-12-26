@@ -2,3 +2,8 @@ fastapi
 uvicorn
 python-jose
 httpx
+google
+python-jose[cryptography]
+python-dotenv
+google-auth
+requests
