@@ -1,25 +1,22 @@
+import httpx
+
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from urllib.parse import urlencode
-import httpx
-import os
-
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
-from jose import jwt
+from backend.core.consts import GOOGLE_REDIRECT_URI, OAUTH2_URL, GOOGLE_API_TOKEN, GOOGLE_SCOPE
+from backend.core.settings import settings
 
 router = APIRouter(tags=["auth"])
 
-# Load credentials from environment variables
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"
-GOOGLE_SCOPE = "openid email profile"
 
-# -------------------------------
-# Step 1: Redirect user to Google
-# -------------------------------
+GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI = GOOGLE_REDIRECT_URI.format(backend=settings.BACKEND_HOST, port=settings.BACKEND_PORT)
+
+
 @router.get("/google")
 async def google_login():
     params = {
@@ -30,12 +27,11 @@ async def google_login():
         "access_type": "offline",
         "prompt": "select_account",
     }
-    url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    url = OAUTH2_URL.format(params=params)
     return RedirectResponse(url)
 
-# -------------------------------
-# Step 2: Handle Google callback
-# -------------------------------
+
+
 @router.get("/google/callback")
 async def google_callback(request: Request):
     code = request.query_params.get("code")
@@ -45,7 +41,7 @@ async def google_callback(request: Request):
     # Exchange authorization code for tokens
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            "https://oauth2.googleapis.com/token",
+            GOOGLE_API_TOKEN,
             data={
                 "code": code,
                 "client_id": GOOGLE_CLIENT_ID,
