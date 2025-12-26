@@ -1,9 +1,12 @@
+import secrets
+
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
+    USE_GCS: str = "false"
 
     ADMIN: list = []
 
@@ -16,6 +19,7 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
 
     JWT_ALGORITHM: str = "HS256"
+    JWT_SECRET: str = secrets.token_urlsafe(32)
 
 
 settings = Settings()
