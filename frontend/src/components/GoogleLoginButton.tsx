@@ -2,9 +2,12 @@
 import React from 'react';
 
 const GoogleLoginButton: React.FC = () => {
+  console.log("GoogleLoginButton rendered");
+
   const handleLogin = () => {
-    window.location.href = "http://localhost:8000/api/auth/google"; // GET request
+    window.location.href = "http://localhost:8000/api/auth/google";
   };
+
 
 
   return (

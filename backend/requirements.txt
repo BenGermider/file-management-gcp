@@ -11,3 +11,4 @@ google-auth
 requests
 sqlalchemy
 asyncpg
+pyjwt

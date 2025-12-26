@@ -1,13 +1,18 @@
-// src/App.tsx
-import React from 'react';
-import GoogleLoginButton from './components/GoogleLoginButton';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import GoogleLoginButton from "./components/GoogleLoginButton";
+import Dashboard from "./pages/Menu";
+import OAuthCallback from "./pages/OAuthCallback";
 
-const App: React.FC = () => {
+function App() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '50px' }}>
-      <GoogleLoginButton />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<GoogleLoginButton />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
-};
+}
 
 export default App;

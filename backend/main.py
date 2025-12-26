@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
 from api.routes.auth import router as auth_router
 from db import init_models, dispose
 
@@ -25,9 +26,6 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
-
-
-
 
 
 app.add_middleware(
