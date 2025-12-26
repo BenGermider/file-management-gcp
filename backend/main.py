@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
-
+from api.routes.admin import router as admin_router
 
 from db import init_models, dispose
 
@@ -41,6 +41,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/auth")
 app.include_router(files_router, prefix="/api/files")
+app.include_router(admin_router, prefix="/api/admin")
 
 @app.get("/health")
 def hello():

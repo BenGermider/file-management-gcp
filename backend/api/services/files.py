@@ -145,10 +145,14 @@ class FileService:
         skip: int = 0,
         limit: int = 50,
         search: str = None,
-        file_type: str = None
+        file_type: str = None,
+        extension: bool = False
     ) -> List[File]:
         """List user's files with optional search and filter"""
-        stmt = select(File).where(File.owner == current_user["sub"])
+        if not extension:
+            stmt = select(File).where(File.owner == current_user["sub"])
+        else:
+            stmt = select(File)
 
         if search:
             stmt = stmt.where(File.name.ilike(f"%{search}%"))

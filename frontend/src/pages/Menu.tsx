@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
+import React from "react";
 
 interface UserPayload {
   email: string;
@@ -7,6 +8,7 @@ interface UserPayload {
   role: string;
   exp: number;
 }
+
 
 function decodeToken(token: string): UserPayload {
   return jwtDecode<UserPayload>(token);
@@ -18,6 +20,7 @@ interface FileResponse {
   type: string;
   size: number;
   created_at: string;
+  owner?: string;
 }
 
 const Dashboard = () => {
@@ -33,12 +36,19 @@ const Dashboard = () => {
   const [fileTypeFilter, setFileTypeFilter] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "size">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [viewingAllFiles, setViewingAllFiles] = useState(false);
+
+  const handleToggleAllFiles = () => {
+  const newViewAll = !viewingAllFiles;
+  setViewingAllFiles(newViewAll);
+  fetchFiles(searchQuery, fileTypeFilter, newViewAll);
+};
 
   if (!token) return <div>Not logged in</div>;
 
   const user = decodeToken(token);
 
-  const fetchFiles = async (search = "", fileType = "") => {
+  const fetchFiles = async (search = "", fileType = "", viewAll = false) => {
     setLoading(true);
     setError("");
     try {
@@ -46,7 +56,8 @@ const Dashboard = () => {
       if (search) params.append("search", search);
       if (fileType) params.append("file_type", fileType);
 
-      const res = await fetch(`http://localhost:8000/api/files?${params.toString()}`, {
+      const endpoint = viewAll ? "/api/admin/files" : "/api/files";
+      const res = await fetch(`http://localhost:8000${endpoint}?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
@@ -105,6 +116,11 @@ const Dashboard = () => {
     }
   };
 
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  window.location.href = "/";
+  };
+
   const handleDelete = async (fileId: string) => {
     if (!confirm("Are you sure you want to delete this file?")) return;
 
@@ -129,39 +145,14 @@ const Dashboard = () => {
     }
   };
 
-  const handleDownload = async (fileId: string, fileName: string) => {
-    try {
-      if (!token) throw new Error("Not authenticated");
-
-      const response = await fetch(
-        `http://localhost:8000/api/files/${fileId}/download`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Download failed (${response.status})`);
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Download error:", err);
-      alert("Download failed");
-    }
+  const handleDownload = (fileId: string, fileName: string) => {
+    const downloadUrl = `http://localhost:8000/api/files/${fileId}/download`;
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,201 +194,271 @@ const Dashboard = () => {
   const sortedFiles = getSortedFiles();
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <div style={{ marginBottom: "30px" }}>
-        <h1>Hello {user.name} 👋</h1>
-        <p style={{ color: "#666" }}>Email: {user.email}</p>
-        {user.role === "admin" && <p style={{ color: "#4285F4", fontWeight: "bold" }}>👑 Admin User</p>}
-      </div>
+      <div style={{maxWidth: "1200px", margin: "0 auto", padding: "20px", fontFamily: "Arial, sans-serif"}}>
+        <div style={{marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+          <div>
+            <h1>Hello {user.name}</h1>
+            <p style={{color: "#666"}}>Email: {user.email}</p>
+            {user.role === "admin" && <p style={{color: "#4285F4", fontWeight: "bold"}}>👑 Admin User</p>}
+          </div>
+          <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                window.location.href = "/";
+              }}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#f44336",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+          >
+            Logout
+          </button>
+        </div>
 
-      <div style={{ marginBottom: "20px", padding: "15px", backgroundColor: "#f9f9f9", borderRadius: "4px" }}>
-        <label style={{ display: "block" }}>
+        <div style={{marginBottom: "20px", padding: "15px", backgroundColor: "#f9f9f9", borderRadius: "4px"}}>
+          <label style={{display: "block"}}>
+            <input
+                type="file"
+                multiple
+                onChange={handleUpload}
+                disabled={uploading}
+                style={{display: "none"}}
+                id="file-input"
+            />
+            <button
+                onClick={() => document.getElementById("file-input")?.click()}
+                disabled={uploading}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: uploading ? "#ccc" : "#4285F4",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: uploading ? "not-allowed" : "pointer",
+                  fontSize: "16px",
+                }}
+            >
+              {uploading ? "Uploading..." : "📁 Upload Files"}
+            </button>
+          </label>
+          {uploading && (
+              <div style={{marginTop: "10px"}}>
+                <div style={{backgroundColor: "#ddd", borderRadius: "4px", height: "8px", width: "200px"}}>
+                  <div
+                      style={{
+                        backgroundColor: "#4285F4",
+                        height: "100%",
+                        width: `${uploadProgress}%`,
+                        borderRadius: "4px",
+                        transition: "width 0.3s",
+                      }}
+                  />
+                </div>
+              </div>
+          )}
+        </div>
+
+        {/* Search and Filter Controls */}
+        <div style={{
+          marginBottom: "20px",
+          padding: "15px",
+          backgroundColor: "#f0f0f0",
+          borderRadius: "4px",
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
           <input
-            type="file"
-            multiple
-            onChange={handleUpload}
-            disabled={uploading}
-            style={{ display: "none" }}
-            id="file-input"
+              type="text"
+              placeholder="Search by filename..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "4px",
+                border: "1px solid #ddd",
+                flex: 1,
+                minWidth: "200px",
+              }}
           />
           <button
-            onClick={() => document.getElementById("file-input")?.click()}
-            disabled={uploading}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: uploading ? "#ccc" : "#4285F4",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: uploading ? "not-allowed" : "pointer",
-              fontSize: "16px",
-            }}
+              onClick={handleSearch}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#4285F4",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
           >
-            {uploading ? "Uploading..." : "📁 Upload Files"}
+            🔍 Search
           </button>
-        </label>
-        {uploading && (
-          <div style={{ marginTop: "10px" }}>
-            <div style={{ backgroundColor: "#ddd", borderRadius: "4px", height: "8px", width: "200px" }}>
-              <div
-                style={{
-                  backgroundColor: "#4285F4",
-                  height: "100%",
-                  width: `${uploadProgress}%`,
-                  borderRadius: "4px",
-                  transition: "width 0.3s",
-                }}
-              />
+
+          <select
+              value={fileTypeFilter}
+              onChange={handleFilterChange}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "4px",
+                border: "1px solid #ddd",
+              }}
+          >
+            <option value="">All File Types</option>
+            {getUniqueFileTypes().map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+            ))}
+          </select>
+
+          <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "date" | "size")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "4px",
+                border: "1px solid #ddd",
+              }}
+          >
+            <option value="date">Sort by Date</option>
+            <option value="size">Sort by Size</option>
+          </select>
+
+          <button
+              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+              style={{
+                padding: "8px 12px",
+                backgroundColor: "#666",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+          >
+            {sortOrder === "desc" ? "↓" : "↑"}
+          </button>
+
+          {user.role === "admin" && (
+              <button
+                  onClick={handleToggleAllFiles}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: viewingAllFiles ? "#ff9800" : "#4285F4",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    marginLeft: "auto",
+                  }}
+              >
+                {viewingAllFiles ? "👥 Hide Others" : "👥 Show All Files"}
+              </button>
+          )}
+        </div>
+
+        {error && (
+            <div style={{
+              color: "#d32f2f",
+              marginBottom: "10px",
+              padding: "10px",
+              backgroundColor: "#ffebee",
+              borderRadius: "4px"
+            }}>
+              ⚠️ {error}
             </div>
-          </div>
+        )}
+
+        {loading ? (
+            <p style={{textAlign: "center", color: "#666"}}>Loading files...</p>
+        ) : sortedFiles.length === 0 ? (
+            <p style={{textAlign: "center", color: "#666"}}>No files found. Upload your first file!</p>
+        ) : (
+            <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  marginTop: "20px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+            >
+              <thead>
+              <tr style={{backgroundColor: "#f5f5f5"}}>
+                <th style={{padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd"}}>Name</th>
+                {viewingAllFiles &&
+                    <th style={{padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd"}}>Owner</th>}
+                <th style={{padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd"}}>Type</th>
+                <th style={{padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd"}}>Size</th>
+                <th style={{padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd"}}>Uploaded</th>
+                {!viewingAllFiles &&
+                    <th style={{padding: "12px", textAlign: "center", borderBottom: "2px solid #ddd"}}>Actions</th>}
+              </tr>
+              </thead>
+              <tbody>
+              {sortedFiles.map((file) => (
+                  <tr key={file.id} style={{borderBottom: "1px solid #ddd", backgroundColor: "white"}}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9f9f9")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}>
+                    <td style={{padding: "12px"}}>{file.name}</td>
+                    {viewingAllFiles &&
+                        <td style={{padding: "12px", fontSize: "14px", color: "#666"}}>{file.owner}</td>}
+                    <td style={{padding: "12px", fontSize: "14px", color: "#666"}}>{file.type}</td>
+                    <td style={{
+                      padding: "12px",
+                      fontSize: "14px",
+                      color: "#666"
+                    }}>{(file.size / 1024).toFixed(2)} KB
+                    </td>
+                    <td style={{
+                      padding: "12px",
+                      fontSize: "14px",
+                      color: "#666"
+                    }}>{new Date(file.created_at).toLocaleDateString()}</td>
+                    {!viewingAllFiles && (
+                        <td style={{padding: "12px", textAlign: "center"}}>
+                          <button
+                              onClick={() => handleDownload(file.id, file.name)}
+                              style={{
+                                padding: "6px 12px",
+                                backgroundColor: "#2196F3",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                marginRight: "8px",
+                              }}
+                          >
+                            ⬇️
+                          </button>
+                          <button
+                              onClick={() => handleDelete(file.id)}
+                              style={{
+                                padding: "6px 12px",
+                                backgroundColor: "#f44336",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                              }}
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                    )}
+                  </tr>
+              ))}
+              </tbody>
+            </table>
         )}
       </div>
-
-      {/* Search and Filter Controls */}
-      <div style={{ marginBottom: "20px", padding: "15px", backgroundColor: "#f0f0f0", borderRadius: "4px", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-        <input
-          type="text"
-          placeholder="Search by filename..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-          style={{
-            padding: "8px 12px",
-            borderRadius: "4px",
-            border: "1px solid #ddd",
-            flex: 1,
-            minWidth: "200px",
-          }}
-        />
-        <button
-          onClick={handleSearch}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#4285F4",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          🔍 Search
-        </button>
-
-        <select
-          value={fileTypeFilter}
-          onChange={handleFilterChange}
-          style={{
-            padding: "8px 12px",
-            borderRadius: "4px",
-            border: "1px solid #ddd",
-          }}
-        >
-          <option value="">All File Types</option>
-          {getUniqueFileTypes().map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as "date" | "size")}
-          style={{
-            padding: "8px 12px",
-            borderRadius: "4px",
-            border: "1px solid #ddd",
-          }}
-        >
-          <option value="date">Sort by Date</option>
-          <option value="size">Sort by Size</option>
-        </select>
-
-        <button
-          onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-          style={{
-            padding: "8px 12px",
-            backgroundColor: "#666",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          {sortOrder === "desc" ? "↓" : "↑"}
-        </button>
-      </div>
-
-      {error && (
-        <div style={{ color: "#d32f2f", marginBottom: "10px", padding: "10px", backgroundColor: "#ffebee", borderRadius: "4px" }}>
-          ⚠️ {error}
-        </div>
-      )}
-
-      {loading ? (
-        <p style={{ textAlign: "center", color: "#666" }}>Loading files...</p>
-      ) : sortedFiles.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No files found. Upload your first file!</p>
-      ) : (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: "20px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
-          <thead>
-            <tr style={{ backgroundColor: "#f5f5f5" }}>
-              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Name</th>
-              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Type</th>
-              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Size</th>
-              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Uploaded</th>
-              <th style={{ padding: "12px", textAlign: "center", borderBottom: "2px solid #ddd" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedFiles.map((file) => (
-              <tr key={file.id} style={{ borderBottom: "1px solid #ddd", backgroundColor: "white" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9f9f9")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}>
-                <td style={{ padding: "12px" }}>{file.name}</td>
-                <td style={{ padding: "12px", fontSize: "14px", color: "#666" }}>{file.type}</td>
-                <td style={{ padding: "12px", fontSize: "14px", color: "#666" }}>{(file.size / 1024).toFixed(2)} KB</td>
-                <td style={{ padding: "12px", fontSize: "14px", color: "#666" }}>{new Date(file.created_at).toLocaleDateString()}</td>
-                <td style={{ padding: "12px", textAlign: "center" }}>
-                  <button
-                    onClick={() => handleDownload(file.id, file.name)}
-                    style={{
-                      padding: "6px 12px",
-                      backgroundColor: "#2196F3",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      marginRight: "8px",
-                    }}
-                  >
-                    ⬇️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(file.id)}
-                    style={{
-                      padding: "6px 12px",
-                      backgroundColor: "#f44336",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
   );
 };
 
