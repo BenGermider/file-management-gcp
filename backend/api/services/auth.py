@@ -1,5 +1,4 @@
 from urllib.parse import urlencode
-import secrets
 import jwt
 import httpx
 from datetime import datetime, timedelta
@@ -20,8 +19,9 @@ class AuthService:
         f"http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}/"
         f"api/auth/google/callback"
     )
-    JWT_SECRET = secrets.token_urlsafe(32)
+
     JWT_ALGORITHM = settings.JWT_ALGORITHM
+    JWT_SECRET = settings.JWT_SECRET
     JWT_EXPIRY_HOURS = 24
 
     @classmethod

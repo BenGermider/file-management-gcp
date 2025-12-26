@@ -12,134 +12,265 @@ function decodeToken(token: string): UserPayload {
   return jwtDecode<UserPayload>(token);
 }
 
-interface File {
+interface FileResponse {
   id: string;
   name: string;
-  owner: string;
-  created_at: string;
+  type: string;
   size: number;
+  created_at: string;
 }
 
 const Dashboard = () => {
   const token = localStorage.getItem("token");
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"my-files" | "all-files">("my-files");
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Filters and sorting
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fileTypeFilter, setFileTypeFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "size">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   if (!token) return <div>Not logged in</div>;
 
   const user = decodeToken(token);
-  const isAdmin = user.role === "admin";
 
-const fetchMyFiles = async () => {
-  setLoading(true);
-  setError("");
-  try {
-    const res = await fetch("http://localhost:8000/api/files", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      setError(`Error: ${res.status}`);
-      setFiles([]);
-      return;
-    }
-    const data = await res.json();
-    setFiles(Array.isArray(data) ? data : []);
-  } catch (err) {
-    setError("Failed to fetch files");
-    setFiles([]);
-  }
-  setLoading(false);
-};
-
-  const fetchAllFiles = async () => {
+  const fetchFiles = async (search = "", fileType = "") => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("http://localhost:8000/api/files/all", {
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (fileType) params.append("file_type", fileType);
+
+      const res = await fetch(`http://localhost:8000/api/files?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        setError(`Error: ${res.status}`);
+        setFiles([]);
+        return;
+      }
       const data = await res.json();
-      setFiles(data);
+      setFiles(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("Failed to fetch files");
+      setFiles([]);
     }
     setLoading(false);
   };
 
-  const handleTabChange = (tab: "my-files" | "all-files") => {
-    setActiveTab(tab);
-    if (tab === "my-files") {
-      fetchMyFiles();
-    } else {
-      fetchAllFiles();
-    }
-  };
-
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+
+    if (selectedFiles.length > 10) {
+      setError("Maximum 10 files per upload");
+      return;
+    }
 
     const formData = new FormData();
-    formData.append("file", file);
+    for (let i = 0; i < selectedFiles.length; i++) {
+      formData.append("files", selectedFiles[i]);
+    }
 
-    setLoading(true);
+    setUploading(true);
     setError("");
+    setUploadProgress(0);
+
     try {
-      await fetch("http://localhost:8000/api/files/upload", {
+      const res = await fetch("http://localhost:8000/api/files/upload", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-      fetchMyFiles();
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.detail || "Upload failed");
+        return;
+      }
+
+      setUploadProgress(100);
+      await fetchFiles(searchQuery, fileTypeFilter);
+      e.target.value = "";
     } catch (err) {
-      setError("Failed to upload file");
+      setError("Failed to upload files");
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
-    setLoading(false);
   };
 
   const handleDelete = async (fileId: string) => {
+    if (!confirm("Are you sure you want to delete this file?")) return;
+
     setLoading(true);
     setError("");
     try {
-      await fetch(`http://localhost:8000/api/files/${fileId}`, {
+      const res = await fetch(`http://localhost:8000/api/files/${fileId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (activeTab === "my-files") {
-        fetchMyFiles();
-      } else {
-        fetchAllFiles();
+
+      if (!res.ok) {
+        setError("Failed to delete file");
+        return;
       }
+
+      await fetchFiles(searchQuery, fileTypeFilter);
     } catch (err) {
       setError("Failed to delete file");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleDownload = async (fileId: string, fileName: string) => {
+    try {
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `http://localhost:8000/api/files/${fileId}/download`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Download failed (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      alert("Download failed");
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearch = () => {
+    fetchFiles(searchQuery, fileTypeFilter);
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newFilter = e.target.value;
+    setFileTypeFilter(newFilter);
+    fetchFiles(searchQuery, newFilter);
+  };
+
+  const getSortedFiles = () => {
+    const sorted = [...files].sort((a, b) => {
+      if (sortBy === "date") {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+      } else {
+        return sortOrder === "desc" ? b.size - a.size : a.size - b.size;
+      }
+    });
+    return sorted;
+  };
+
+  const getUniqueFileTypes = () => {
+    const types = new Set(files.map((f) => f.type));
+    return Array.from(types).sort();
   };
 
   useEffect(() => {
-    fetchMyFiles();
+    fetchFiles();
   }, []);
 
+  const sortedFiles = getSortedFiles();
+
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "20px" }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "20px", fontFamily: "Arial, sans-serif" }}>
       <div style={{ marginBottom: "30px" }}>
         <h1>Hello {user.name} 👋</h1>
         <p style={{ color: "#666" }}>Email: {user.email}</p>
-        {isAdmin && <p style={{ color: "#4285F4", fontWeight: "bold" }}>Admin User</p>}
+        {user.role === "admin" && <p style={{ color: "#4285F4", fontWeight: "bold" }}>👑 Admin User</p>}
       </div>
 
-      <div style={{ marginBottom: "20px" }}>
-        <label style={{ display: "inline-block", marginRight: "10px" }}>
+      <div style={{ marginBottom: "20px", padding: "15px", backgroundColor: "#f9f9f9", borderRadius: "4px" }}>
+        <label style={{ display: "block" }}>
           <input
             type="file"
+            multiple
             onChange={handleUpload}
-            style={{ cursor: "pointer" }}
+            disabled={uploading}
+            style={{ display: "none" }}
+            id="file-input"
           />
+          <button
+            onClick={() => document.getElementById("file-input")?.click()}
+            disabled={uploading}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: uploading ? "#ccc" : "#4285F4",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: uploading ? "not-allowed" : "pointer",
+              fontSize: "16px",
+            }}
+          >
+            {uploading ? "Uploading..." : "📁 Upload Files"}
+          </button>
         </label>
+        {uploading && (
+          <div style={{ marginTop: "10px" }}>
+            <div style={{ backgroundColor: "#ddd", borderRadius: "4px", height: "8px", width: "200px" }}>
+              <div
+                style={{
+                  backgroundColor: "#4285F4",
+                  height: "100%",
+                  width: `${uploadProgress}%`,
+                  borderRadius: "4px",
+                  transition: "width 0.3s",
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div style={{ marginBottom: "20px", padding: "15px", backgroundColor: "#f0f0f0", borderRadius: "4px", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          type="text"
+          placeholder="Search by filename..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+          style={{
+            padding: "8px 12px",
+            borderRadius: "4px",
+            border: "1px solid #ddd",
+            flex: 1,
+            minWidth: "200px",
+          }}
+        />
         <button
-          onClick={() => document.querySelector('input[type="file"]')?.click()}
+          onClick={handleSearch}
           style={{
             padding: "8px 16px",
             backgroundColor: "#4285F4",
@@ -149,85 +280,104 @@ const fetchMyFiles = async () => {
             cursor: "pointer",
           }}
         >
-          Upload File
+          🔍 Search
         </button>
-      </div>
 
-      {error && <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>}
-
-      <div style={{ marginBottom: "20px" }}>
-        <button
-          onClick={() => handleTabChange("my-files")}
+        <select
+          value={fileTypeFilter}
+          onChange={handleFilterChange}
           style={{
-            padding: "10px 15px",
-            backgroundColor: activeTab === "my-files" ? "#4285F4" : "#ccc",
+            padding: "8px 12px",
+            borderRadius: "4px",
+            border: "1px solid #ddd",
+          }}
+        >
+          <option value="">All File Types</option>
+          {getUniqueFileTypes().map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "date" | "size")}
+          style={{
+            padding: "8px 12px",
+            borderRadius: "4px",
+            border: "1px solid #ddd",
+          }}
+        >
+          <option value="date">Sort by Date</option>
+          <option value="size">Sort by Size</option>
+        </select>
+
+        <button
+          onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+          style={{
+            padding: "8px 12px",
+            backgroundColor: "#666",
             color: "white",
             border: "none",
             borderRadius: "4px",
             cursor: "pointer",
-            marginRight: "10px",
           }}
         >
-          My Files
+          {sortOrder === "desc" ? "↓" : "↑"}
         </button>
-        {isAdmin && (
-          <button
-            onClick={() => handleTabChange("all-files")}
-            style={{
-              padding: "10px 15px",
-              backgroundColor: activeTab === "all-files" ? "#4285F4" : "#ccc",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            All Files (Admin)
-          </button>
-        )}
       </div>
 
+      {error && (
+        <div style={{ color: "#d32f2f", marginBottom: "10px", padding: "10px", backgroundColor: "#ffebee", borderRadius: "4px" }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {loading ? (
-        <p>Loading...</p>
-      ) : files.length === 0 ? (
-        <p>No files found</p>
+        <p style={{ textAlign: "center", color: "#666" }}>Loading files...</p>
+      ) : sortedFiles.length === 0 ? (
+        <p style={{ textAlign: "center", color: "#666" }}>No files found. Upload your first file!</p>
       ) : (
         <table
           style={{
             width: "100%",
             borderCollapse: "collapse",
             marginTop: "20px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
           <thead>
             <tr style={{ backgroundColor: "#f5f5f5" }}>
-              <th style={{ padding: "10px", textAlign: "left", borderBottom: "1px solid #ddd" }}>
-                Name
-              </th>
-              <th style={{ padding: "10px", textAlign: "left", borderBottom: "1px solid #ddd" }}>
-                Owner
-              </th>
-              <th style={{ padding: "10px", textAlign: "left", borderBottom: "1px solid #ddd" }}>
-                Size
-              </th>
-              <th style={{ padding: "10px", textAlign: "left", borderBottom: "1px solid #ddd" }}>
-                Created
-              </th>
-              <th style={{ padding: "10px", textAlign: "left", borderBottom: "1px solid #ddd" }}>
-                Action
-              </th>
+              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Name</th>
+              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Type</th>
+              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Size</th>
+              <th style={{ padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }}>Uploaded</th>
+              <th style={{ padding: "12px", textAlign: "center", borderBottom: "2px solid #ddd" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {files.map((file) => (
-              <tr key={file.id} style={{ borderBottom: "1px solid #ddd" }}>
-                <td style={{ padding: "10px" }}>{file.name}</td>
-                <td style={{ padding: "10px" }}>{file.owner}</td>
-                <td style={{ padding: "10px" }}>{(file.size / 1024).toFixed(2)} KB</td>
-                <td style={{ padding: "10px" }}>
-                  {new Date(file.created_at).toLocaleDateString()}
-                </td>
-                <td style={{ padding: "10px" }}>
+            {sortedFiles.map((file) => (
+              <tr key={file.id} style={{ borderBottom: "1px solid #ddd", backgroundColor: "white" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9f9f9")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}>
+                <td style={{ padding: "12px" }}>{file.name}</td>
+                <td style={{ padding: "12px", fontSize: "14px", color: "#666" }}>{file.type}</td>
+                <td style={{ padding: "12px", fontSize: "14px", color: "#666" }}>{(file.size / 1024).toFixed(2)} KB</td>
+                <td style={{ padding: "12px", fontSize: "14px", color: "#666" }}>{new Date(file.created_at).toLocaleDateString()}</td>
+                <td style={{ padding: "12px", textAlign: "center" }}>
+                  <button
+                    onClick={() => handleDownload(file.id, file.name)}
+                    style={{
+                      padding: "6px 12px",
+                      backgroundColor: "#2196F3",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      marginRight: "8px",
+                    }}
+                  >
+                    ⬇️
+                  </button>
                   <button
                     onClick={() => handleDelete(file.id)}
                     style={{
@@ -239,7 +389,7 @@ const fetchMyFiles = async () => {
                       cursor: "pointer",
                     }}
                   >
-                    Delete
+                    🗑️
                   </button>
                 </td>
               </tr>
