@@ -22,6 +22,11 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
 
     try:
         result = await AuthService.handle_google_callback(code, db)
-        return result
+
+        return RedirectResponse(
+            url=f"http://localhost:5173/oauth/callback?token={result}",
+            status_code=302
+        )
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
