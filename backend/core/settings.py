@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
+    ADMIN: list = []
+
     BACKEND_HOST: str = "localhost"
     BACKEND_PORT: int = 8000
 
@@ -12,6 +14,8 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = ""
     DB_HOST: str = "db"
     DB_PORT: int = 5432
+
+    JWT_ALGORITHM: str = "HS256"
 
 
 settings = Settings()

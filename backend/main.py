@@ -6,12 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 from api.routes.auth import router as auth_router
-from api.routes.auth import URI
 from db import init_models, dispose
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(URI)
+
     await init_models()
 
     yield
