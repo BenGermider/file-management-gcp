@@ -15,8 +15,7 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: str = "5432"
 
-    FRONTEND_HOST: str = "localhost"
-    FRONTEND_PORT: int = 3000
+    FRONTEND_URL: str = "localhost:3000"
 
     ADMIN: list = []
 
