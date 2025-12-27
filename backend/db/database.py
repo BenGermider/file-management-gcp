@@ -8,7 +8,7 @@ Base = declarative_base()
 DATABASE_URL = (
     f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}"
     f"@{settings.DB_HOST}:{settings.DB_PORT}/"
-    f"file_management"
+    f"file-manager-db"
 )
 
 # Initialize engine immediately so it's never None
