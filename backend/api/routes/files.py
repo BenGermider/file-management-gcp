@@ -19,7 +19,14 @@ async def list_files(
     search: str = None,
     file_type: str = None
 ):
-    return await file_service.list_files(db, current_user, skip, limit, search, file_type)
+    return await file_service.list_files(
+        db=db,
+        current_user=current_user,
+        skip=skip,
+        limit=limit,
+        search=search,
+        file_type=file_type
+    )
 
 
 @router.post("/upload", status_code=HTTP_201_CREATED)

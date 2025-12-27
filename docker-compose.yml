@@ -28,6 +28,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     volumes:
       - ./uploads:/app/uploads  # Add this - persists uploaded files
 
@@ -42,7 +44,24 @@ services:
     env_file:
       - .env
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
-
+  uploads:
+  prometheus_config:
+  elasticsearch_data:
