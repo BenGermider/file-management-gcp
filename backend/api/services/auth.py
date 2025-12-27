@@ -18,7 +18,7 @@ class AuthService:
     GOOGLE_ID = settings.GOOGLE_CLIENT_ID
     SECRET = settings.GOOGLE_CLIENT_SECRET
     URI = (
-        f"{settings.BASE_URL}"
+        f"{settings.BASE_URL}/"
         f"api/auth/google/callback"
     )
 

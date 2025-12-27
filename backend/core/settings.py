@@ -4,8 +4,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    DB_USER: str = "fileuser"
-    DB_PASSWORD: str = ""
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "postgres"
     DB_NAME: str = "file_management"
 
     # Cloud SQL connection name (format: project:region:instance)
