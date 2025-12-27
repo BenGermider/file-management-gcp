@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from fastapi.security import HTTPBearer
 from starlette.requests import Request
 import jwt

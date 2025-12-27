@@ -2,6 +2,7 @@ import secrets
 
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str = ""

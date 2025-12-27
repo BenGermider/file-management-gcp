@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import AsyncMock, Mock, patch
 from api.services.auth import AuthService
 from models.user import User
 import uuid
@@ -50,4 +49,3 @@ async def test_get_or_create_user_new(mock_db):
     assert result.email == "new@test.com"
     mock_db.add.assert_called_once()
     mock_db.commit.assert_awaited_once()
-

@@ -1,5 +1,4 @@
-import uuid
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from db.database import Base
@@ -18,4 +17,3 @@ class File(Base):
 
     # Relationship
     owner = relationship("User", back_populates="files")
-

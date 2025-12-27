@@ -1,9 +1,8 @@
 import pytest
 from fastapi import HTTPException
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 from api.services.files import FileService
-from models.file import File
 
 
 # ------------------ Fixtures ------------------
