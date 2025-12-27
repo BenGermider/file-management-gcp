@@ -4,7 +4,7 @@ const GoogleLoginButton: React.FC = () => {
 
   const handleLogin = () => {
 
-  const backendUrl = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  const backendUrl = import.meta.env.REACT_APP_API_URL || "http://localhost:8000";
   window.location.href = `${backendUrl}/api/auth/google`;
   };
 
