@@ -96,23 +96,18 @@ class AuthService:
 
     @classmethod
     async def handle_google_callback(cls, code: str, db: AsyncSession) -> str:
-        """Complete Google OAuth flow and return app token"""
-        # Exchange code for Google tokens
         token_data = await cls._exchange_google_code(code)
         g_token = token_data.get("id_token")
 
         if not g_token:
             raise Exception("Failed to obtain ID token from Google")
 
-        # Decode token to get user info
         payload = cls._decode_google_token(g_token)
         email = payload.get("email")
         name = payload.get("name")
 
-        # Save or get user from DB
         user = await cls.get_or_create_user(db, email, name)
 
-        # Create app JWT
         app_token = await cls.create_app_token(email, name)
 
         return app_token

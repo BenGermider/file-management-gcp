@@ -44,6 +44,10 @@ const Dashboard = () => {
   fetchFiles(searchQuery, fileTypeFilter, newViewAll);
 };
 
+    useEffect(() => {
+    fetchFiles();
+  }, []);
+
   if (!token) return <div>Not logged in</div>;
 
   const user = decodeToken(token);
@@ -68,6 +72,8 @@ const Dashboard = () => {
       const data = await res.json();
       setFiles(Array.isArray(data) ? data : []);
     } catch (err) {
+      console.log(err)
+
       setError("Failed to fetch files");
       setFiles([]);
     }
@@ -109,6 +115,8 @@ const Dashboard = () => {
       await fetchFiles(searchQuery, fileTypeFilter);
       e.target.value = "";
     } catch (err) {
+      console.log(err)
+
       setError("Failed to upload files");
     } finally {
       setUploading(false);
@@ -139,6 +147,7 @@ const Dashboard = () => {
 
       await fetchFiles(searchQuery, fileTypeFilter);
     } catch (err) {
+      console.log(err)
       setError("Failed to delete file");
     } finally {
       setLoading(false);
@@ -187,9 +196,7 @@ const Dashboard = () => {
     return Array.from(types).sort();
   };
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
+
 
   const sortedFiles = getSortedFiles();
 
@@ -202,10 +209,7 @@ const Dashboard = () => {
             {user.role === "admin" && <p style={{color: "#4285F4", fontWeight: "bold"}}>👑 Admin User</p>}
           </div>
           <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                window.location.href = "/";
-              }}
+              onClick={handleLogout}
               style={{
                 padding: "10px 20px",
                 backgroundColor: "#f44336",

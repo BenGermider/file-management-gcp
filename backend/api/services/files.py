@@ -14,6 +14,8 @@ from google.cloud import storage
 from models.file import File
 from core.settings import settings
 
+from core.metrics import files_uploaded, upload_size_bytes, files_downloaded, download_size_bytes, files_deleted
+
 ALLOWED_MIME_TYPES = {
     "application/json": ".json",
     "text/plain": ".txt",
@@ -132,6 +134,10 @@ class FileService:
                         "type": file_ext,
                         "size": size
                     })
+
+                    files_uploaded.inc()
+                    upload_size_bytes.observe(size)
+
                 except Exception as e:
                     await db.rollback()
                     raise HTTPException(status_code=500, detail=f"Failed to upload {file.filename}")
@@ -191,6 +197,9 @@ class FileService:
             "Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{quoted}'
         }
 
+        files_downloaded.inc()
+        download_size_bytes.observe(len(content))
+
         return StreamingResponse(BytesIO(content), media_type=db_file.type, headers=headers)
 
     async def delete_file(
@@ -213,6 +222,9 @@ class FileService:
             await self._delete_from_storage(db_file.file_path)
             await db.delete(db_file)
             await db.commit()
+
+            files_deleted.inc()
+
         except Exception:
             await self._upload_to_storage(db_file.id, backup, db_file.file_path)
             await db.rollback()

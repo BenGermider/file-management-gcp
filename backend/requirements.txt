@@ -12,3 +12,5 @@ asyncpg
 pyjwt==2.9.0
 google-cloud-storage==2.10.0
 python-multipart
+prometheus-client
+prometheus-fastapi-instrumentator
