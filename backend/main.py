@@ -9,7 +9,7 @@ from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
 from api.routes.admin import router as admin_router
 from api.services.files import file_service
-from backend.core.settings import settings
+from core.settings import settings
 
 from db import init_models, dispose
 
