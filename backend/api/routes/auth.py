@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from api.services.auth import AuthService
 
+from core.settings import settings
+
 router = APIRouter(tags=["auth"])
 
 
@@ -24,7 +26,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
         result = await AuthService.handle_google_callback(code, db)
 
         return RedirectResponse(
-            url=f"http://localhost:5173/oauth/callback?token={result}",
+            url=f"http://{settings.FRONTEND_HOST}:{settings.FRONTEND_PORT}/oauth/callback?token={result}",
             status_code=302
         )
 

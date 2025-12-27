@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = "localhost"
     BACKEND_PORT: int = 8000
 
+    FRONTEND_HOST: str = "localhost"
+    FRONTEND_PORT: int = 3000
+
     DB_USER: str = ""
     DB_PASSWORD: str = ""
     DB_HOST: str = "db"
