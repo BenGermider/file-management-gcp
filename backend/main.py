@@ -57,7 +57,7 @@ Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://34.165.93.103:3000"],
+    allow_origins=["https://34.165.93.103:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
