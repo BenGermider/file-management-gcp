@@ -44,7 +44,7 @@ jobs:
       # 5. Run unit tests
       - name: Run unit tests
         run: |
-          cd backed
+          dir
           $env:PYTHONPATH="." pytest tests --maxfail=1 --disable-warnings -v
 
       # 5. Run linting
