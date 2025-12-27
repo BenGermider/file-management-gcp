@@ -30,4 +30,3 @@ async def list_all_files(
         file_type=file_type,
         extension=current_admin.get("role", "user") == "admin"
     )
-

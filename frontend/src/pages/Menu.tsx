@@ -37,14 +37,6 @@ const Dashboard = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [viewingAllFiles, setViewingAllFiles] = useState(false);
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
-
-  if (!token) return <div>Not logged in</div>;
-
-  const user = decodeToken(token);
-
   const fetchFiles = async (fnSearch = "", txtSearch = "", viewAll = false) => {
     setLoading(true);
     setError("");
@@ -78,6 +70,15 @@ const Dashboard = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
+  if (!token) return <div>Not logged in</div>;
+
+  const user = decodeToken(token);
+
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
