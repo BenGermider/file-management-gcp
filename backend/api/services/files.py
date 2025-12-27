@@ -301,12 +301,13 @@ class FileService:
             current_user: dict
     ) -> StreamingResponse:
         """Download a file"""
+
         result = await db.execute(select(File).where(File.id == file_id))
         db_file = result.scalar_one_or_none()
 
         if not db_file:
             raise HTTPException(status_code=404, detail="File not found")
-        if db_file.owner != current_user["user_id"]:
+        if str(db_file.owner_id) != current_user["user_id"]:
             raise HTTPException(status_code=403, detail="Not authorized")
 
         try:
@@ -339,7 +340,7 @@ class FileService:
 
         if not db_file:
             raise HTTPException(status_code=404, detail="File not found")
-        if db_file.owner != current_user["user_id"]:
+        if str(db_file.owner_id) != current_user["user_id"]:
             raise HTTPException(status_code=403, detail="Not authorized")
 
         try:
