@@ -55,12 +55,6 @@ jobs:
           export PYTHONPATH=.
           pytest tests
 
-      - name: Build Docker image
-        working-directory: backend
-        run: |
-          REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/$REPO_OWNER_LOWER/file_management:${{ github.sha }} .
-
       - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
@@ -68,10 +62,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag and push Docker image
-        if: github.ref == 'refs/heads/main'
+      - name: Build and push backend
         run: |
           REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          docker tag ghcr.io/$REPO_OWNER_LOWER/file_management:${{ github.sha }} ghcr.io/$REPO_OWNER_LOWER/file_management:latest
-          docker push ghcr.io/$REPO_OWNER_LOWER/file_management:latest
-          docker push ghcr.io/$REPO_OWNER_LOWER/file_management:${{ github.sha }}
+          docker build -f backend/Dockerfile -t ghcr.io/$REPO_OWNER_LOWER/file_management-backend:${{ github.sha }} .
+          docker tag ghcr.io/$REPO_OWNER_LOWER/file_management-backend:${{ github.sha }} ghcr.io/$REPO_OWNER_LOWER/file_management-backend:latest
+          docker push ghcr.io/$REPO_OWNER_LOWER/file_management-backend:latest
+          docker push ghcr.io/$REPO_OWNER_LOWER/file_management-backend:${{ github.sha }}
