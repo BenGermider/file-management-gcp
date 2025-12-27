@@ -52,7 +52,8 @@ jobs:
       - name: Run unit tests
         working-directory: backend
         run: |
-          pytest tests --maxfail=1 --disable-warnings --cov=api --cov-report=xml
+          export PYTHONPATH=.
+          pytest tests
 
       # 7. Build Docker image
       - name: Build Docker image
