@@ -1,30 +1,26 @@
-# Use Python 3.11 slim
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies for compiling packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    python3-dev \
-    libffi-dev \
-    libpq-dev \
-    curl \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --upgrade pip
-
 # Copy requirements and install
-COPY ./backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
-COPY ./backend .
+# Copy application code
+COPY . .
 
-# Expose port
-EXPOSE 8000
+# Port for Cloud Run
+ENV PORT=8080
+EXPOSE 8080
 
-# Run Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Health check endpoint
+HEALTHCHECK CMD curl --fail http://localhost:8080/health || exit 1
+
+# Run application
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --workers 1
