@@ -50,6 +50,7 @@ jobs:
 
       # 6. Run unit tests with coverage
       - name: Run unit tests
+        working-directory: backend
         run: |
           pytest tests --maxfail=1 --disable-warnings --cov=api --cov-report=xml
 
