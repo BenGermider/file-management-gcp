@@ -45,7 +45,7 @@ jobs:
       # 5. Run linting
       - name: Lint code with flake8
         run: |
-          flake8 src tests --max-line-length=120
+          flake8 api core db models schema tests --max-line-length=120
 
       # 6. Run unit tests with coverage
       - name: Run unit tests
