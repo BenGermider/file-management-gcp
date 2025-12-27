@@ -8,7 +8,7 @@ Base = declarative_base()
 DATABASE_URL = (
     f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}"
     f"@{settings.DB_HOST}:{settings.DB_PORT}/"
-    f"file-manager-db"
+    f"file-management"
 )
 
 # Initialize engine immediately so it's never None
@@ -23,3 +23,4 @@ async_session = async_sessionmaker(
 async def get_db():
     async with async_session() as session:
         yield session
+
