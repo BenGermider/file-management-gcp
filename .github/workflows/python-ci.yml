@@ -44,6 +44,7 @@ jobs:
 
       # 5. Run linting
       - name: Lint code with flake8
+        working-directory: backend
         run: |
           flake8 api core db models schema tests --max-line-length=120
 
