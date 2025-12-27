@@ -32,6 +32,15 @@ MANIFEST
 *.manifest
 *.spec
 
+
+# Secrets:
+secrets/
+secrets/*
+
+
+# Volumes
+uploads/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -135,6 +144,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.env.production
 .env
 .envrc
 .venv
@@ -173,7 +183,7 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
 
 # Abstra
 # Abstra is an AI-powered process automation framework.
@@ -200,7 +210,7 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
-
+node_modules
 # Marimo
 marimo/_static/
 marimo/_lsp/
