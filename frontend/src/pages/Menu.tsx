@@ -51,7 +51,7 @@ const Dashboard = () => {
 
       const endpoint = viewAll ? "/api/admin/files" : "/api/files";
       const host = import.meta.env.VITE_API_URL;
-      const res = await fetch(`${host}/${endpoint}?${params.toString()}`, {
+      const res = await fetch(`${host}${endpoint}?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
