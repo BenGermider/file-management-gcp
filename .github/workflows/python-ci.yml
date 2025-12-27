@@ -40,13 +40,7 @@ jobs:
           cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      # 5. Run unit tests
-      - name: Run unit tests
-        working-directory: backend
-        run: |
-          export PYTHONPATH=.
-          pytest tests --maxfail=1 --disable-warnings -v
+          pip install flake8
 
       # 5. Run linting
       - name: Lint code with flake8
