@@ -17,6 +17,7 @@ services:
       retries: 5
 
   backend:
+    container_name: backend
     restart: always
     build:
       context: .
@@ -61,6 +62,7 @@ services:
       retries: 5
 
   frontend:
+    container_name: frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
