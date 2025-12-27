@@ -9,6 +9,7 @@ from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
 from api.routes.admin import router as admin_router
 from api.services.files import file_service
+from backend.core.settings import settings
 
 from db import init_models, dispose
 
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
     await init_models()
     await file_service.init()  # Initialize
 
+    yield
     yield
 
     await file_service.close()  # Cleanup
@@ -37,7 +39,7 @@ Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[f"http://{settings.FRONTEND_HOST}:{settings.FRONTEND_PORT}"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
