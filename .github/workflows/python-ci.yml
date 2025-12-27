@@ -43,10 +43,8 @@ jobs:
 
       # 5. Run unit tests
       - name: Run unit tests
-        run: |
-          cd backend
-          dir
-          $env:PYTHONPATH="." pytest tests --maxfail=1 --disable-warnings -v
+        working-directory: backend
+        run: PYTHONPATH=. pytest tests --maxfail=1 --disable-warnings -v
 
       # 5. Run linting
       - name: Lint code with flake8
