@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: str = "5432"
 
+    ADMIN: list = []
+
     # Google Cloud Storage
     USE_GCS: str = "false"
     GCS_BUCKET_NAME: str = ""
