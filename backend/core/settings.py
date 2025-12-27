@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = "http://localhost:3000/oauth/callback"
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
-
+    JWT_EXPIRATION: int = 24
     # Elasticsearch
     ELASTICSEARCH_URL: str = "http://elasticsearch:9200"
 
