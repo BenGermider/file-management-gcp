@@ -70,6 +70,3 @@ app.include_router(admin_router, prefix="/api/admin")
 @app.get("/health")
 def hello():
     return {"message": "Hello from backend"}
-
-
-EOF
