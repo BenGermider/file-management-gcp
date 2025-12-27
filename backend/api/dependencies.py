@@ -4,7 +4,9 @@ from starlette.requests import Request
 import jwt
 from core.settings import settings
 
+
 security = HTTPBearer()
+
 
 async def get_current_user(request: Request) -> dict:
     """Extract user info from JWT token"""

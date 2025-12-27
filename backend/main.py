@@ -8,16 +8,18 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
 from api.routes.admin import router as admin_router
+from api.services.files import file_service
 
 from db import init_models, dispose
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-
     await init_models()
+    await file_service.init()  # Initialize
 
     yield
 
+    await file_service.close()  # Cleanup
     await dispose()
 
 app = FastAPI(
