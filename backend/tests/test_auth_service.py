@@ -51,17 +51,3 @@ async def test_get_or_create_user_new(mock_db):
     mock_db.add.assert_called_once()
     mock_db.commit.assert_awaited_once()
 
-
-@pytest.mark.asyncio
-async def test_handle_google_callback(mocker, mock_db, mock_user):
-    """
-    Test Google OAuth callback
-    FIXED: Skip this test if the methods don't exist
-    This test needs to be adjusted to match your actual AuthService implementation
-    """
-    # Skip this test for now - it needs to match your actual implementation
-    pytest.skip("This test needs to be updated to match the actual AuthService methods")
-
-    # When you're ready, update this test to use the actual method names from your AuthService
-    # For example, if your AuthService has different method names:
-    # mocker.patch.object(AuthService, "your_actual_method_name", ...)
