@@ -1,8 +1,11 @@
 import React from 'react';
 
 const GoogleLoginButton: React.FC = () => {
+
   const handleLogin = () => {
-    window.location.href = "http://localhost:8000/api/auth/google";
+
+  const backendUrl = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   return (
