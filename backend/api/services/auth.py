@@ -11,8 +11,10 @@ from core.consts import OAUTH2_URL, GOOGLE_API_TOKEN, GOOGLE_SCOPE
 from core.settings import settings
 from models.user import User
 
+
 # Auth service
 class AuthService:
+
     GOOGLE_ID = settings.GOOGLE_CLIENT_ID
     SECRET = settings.GOOGLE_CLIENT_SECRET
     URI = (
@@ -22,7 +24,7 @@ class AuthService:
 
     JWT_ALGORITHM = settings.JWT_ALGORITHM
     JWT_SECRET = settings.JWT_SECRET
-    JWT_EXPIRY_HOURS = 24
+    JWT_EXPIRATION = settings.JWT_EXPIRATION
 
     @classmethod
     async def _is_admin(cls, user):
@@ -67,14 +69,15 @@ class AuthService:
         return payload
 
     @classmethod
-    async def create_app_token(cls, email: str, name: str) -> str:
+    async def create_app_token(cls, user: User) -> str:
         """Create JWT token for your app"""
         payload = {
-            "sub": email,
-            "name": name,
-            "exp": datetime.utcnow() + timedelta(hours=cls.JWT_EXPIRY_HOURS),
+            "sub": user.email,
+            "user_id": str(user.id),
+            "name": user.name,
+            "exp": datetime.utcnow() + timedelta(hours=cls.JWT_EXPIRATION),
             "iat": datetime.utcnow(),
-            "role": await cls._is_admin(email)
+            "role": await cls._is_admin(user.email)
         }
         return jwt.encode(payload, cls.JWT_SECRET, algorithm=cls.JWT_ALGORITHM)
 
@@ -108,6 +111,6 @@ class AuthService:
 
         user = await cls.get_or_create_user(db, email, name)
 
-        app_token = await cls.create_app_token(email, name)
+        app_token = await cls.create_app_token(user)
 
         return app_token

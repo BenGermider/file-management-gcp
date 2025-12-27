@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     JWT_ALGORITHM: str = "HS256"
     JWT_SECRET: str = secrets.token_urlsafe(32)
+    JWT_EXPIRATION: int = 24
 
 
 settings = Settings()

@@ -1,6 +1,6 @@
 import uuid
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from db.database import Base
 from datetime import datetime
@@ -12,7 +12,10 @@ class File(Base):
     name = Column(String)
     type = Column(String)
     size = Column(Integer)
-    owner = Column(String)
-    file_path = Column(String)  # Path in Google Cloud Storage
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)  # Foreign key
+    file_path = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationship
+    owner = relationship("User", back_populates="files")
 

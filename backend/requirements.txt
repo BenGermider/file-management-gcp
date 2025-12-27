@@ -16,3 +16,7 @@ prometheus-client
 prometheus-fastapi-instrumentator
 elasticsearch[async]==8.10.0
 PyPDF2==3.0.1
+
+pytest
+pytest-asyncio
+pytest-mock

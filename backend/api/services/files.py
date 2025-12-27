@@ -169,7 +169,7 @@ class FileService:
                 file_path.unlink()
 
     def _generate_path(self, file_id: str, file_ext: str, user: dict) -> str:
-        output = f"{user['sub']}/{file_id}{file_ext}"
+        output = f"{user['user_id']}/{file_id}{file_ext}"  # Use user_id instead of email
         return output if self.use_gcs else str(self.local_dir / output)
 
     # ==================== VALIDATION ====================
@@ -246,7 +246,7 @@ class FileService:
                         name=file.filename,
                         type=file_ext,
                         size=size,
-                        owner=current_user["sub"],
+                        owner_id=current_user["user_id"],
                         file_path=path
                     )
                     db.add(db_file)
@@ -278,20 +278,14 @@ class FileService:
             file_type: str = None,
             extension: bool = False
     ) -> List[File]:
-        """List files with optional content search"""
-
-        # If search query, use Elasticsearch first
         if search:
             file_ids = await self._search_file_content(search, limit)
-
             if not file_ids:
                 return []
-
             stmt = select(File).where(File.id.in_(file_ids))
         else:
-            # Regular query
             if not extension:
-                stmt = select(File).where(File.owner == current_user["sub"])
+                stmt = select(File).where(File.owner_id == current_user["user_id"])  # Use user_id
             else:
                 stmt = select(File)
 
@@ -314,7 +308,7 @@ class FileService:
 
         if not db_file:
             raise HTTPException(status_code=404, detail="File not found")
-        if db_file.owner != current_user["sub"]:
+        if db_file.owner != current_user["user_id"]:
             raise HTTPException(status_code=403, detail="Not authorized")
 
         try:
@@ -347,7 +341,7 @@ class FileService:
 
         if not db_file:
             raise HTTPException(status_code=404, detail="File not found")
-        if db_file.owner != current_user["sub"]:
+        if db_file.owner != current_user["user_id"]:
             raise HTTPException(status_code=403, detail="Not authorized")
 
         try:
