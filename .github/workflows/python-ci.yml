@@ -51,7 +51,7 @@ jobs:
       # 6. Run unit tests with coverage
       - name: Run unit tests
         run: |
-          pytest tests --maxfail=1 --disable-warnings --cov=src --cov-report=xml
+          pytest tests --maxfail=1 --disable-warnings --cov=api --cov-report=xml
 
       # 7. Build Docker image
       - name: Build Docker image
