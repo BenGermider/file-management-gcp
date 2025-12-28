@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     USE_GCS: str = "false"
     GCS_BUCKET_NAME: str = ""
     GOOGLE_APPLICATION_CREDENTIALS: str = ""
+    GCP_PROJECT_ID: str = ""
 
     BASE_URL: str = "http://localhost:8000"
 
