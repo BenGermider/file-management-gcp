@@ -166,7 +166,7 @@ class FileService:
     async def _validate_files(files: list) -> None:
         if not files:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No files provided"
             )
         if len(files) > MAX_FILES_PER_UPLOAD:
