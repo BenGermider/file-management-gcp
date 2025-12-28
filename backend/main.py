@@ -8,6 +8,7 @@ from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
 from api.routes.admin import router as admin_router
 from api.services.files import file_service
+from core.settings import settings
 
 from db import init_models, dispose
 
@@ -57,7 +58,11 @@ Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        f"http://{settings.FRONTEND_URL}",
+        "http://localhost:3000",
+        "https://your-ngrok-url.ngrok-free.dev"
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -70,6 +75,3 @@ app.include_router(admin_router, prefix="/api/admin")
 @app.get("/health")
 def hello():
     return {"message": "Hello from backend"}
-
-
-EOF

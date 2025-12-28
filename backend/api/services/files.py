@@ -134,7 +134,7 @@ class FileService:
     # ==================== STORAGE OPERATIONS ====================
     def _get_gcs_bucket(self):
         """Get GCS bucket"""
-        gcs_client = storage.Client()
+        gcs_client = storage.Client(project=settings.GCP_PROJECT_ID)
         return gcs_client.bucket(settings.GCS_BUCKET_NAME)
 
     async def _upload_to_storage(self, file_id: str, content: bytes, path: str) -> None:
