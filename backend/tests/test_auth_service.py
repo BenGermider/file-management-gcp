@@ -16,7 +16,6 @@ def mock_user():
 
 @pytest.mark.asyncio
 async def test_create_app_token(mock_user):
-    """Test JWT token creation"""
     token = await AuthService.create_app_token(mock_user)
     assert isinstance(token, str)
     assert len(token) > 0
@@ -24,8 +23,6 @@ async def test_create_app_token(mock_user):
 
 @pytest.mark.asyncio
 async def test_get_or_create_user_existing(mock_db, mock_user):
-    """Test getting existing user"""
-    # FIXED: scalar_one_or_none is a method, set its return_value
     mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
 
     result = await AuthService.get_or_create_user(
@@ -38,8 +35,6 @@ async def test_get_or_create_user_existing(mock_db, mock_user):
 
 @pytest.mark.asyncio
 async def test_get_or_create_user_new(mock_db):
-    """Test creating new user"""
-    # FIXED: scalar_one_or_none is a method, set its return_value
     mock_db.execute.return_value.scalar_one_or_none.return_value = None
 
     result = await AuthService.get_or_create_user(

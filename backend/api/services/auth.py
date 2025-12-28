@@ -70,7 +70,6 @@ class AuthService:
 
     @classmethod
     async def create_app_token(cls, user: User) -> str:
-        """Create JWT token for your app"""
         payload = {
             "sub": user.email,
             "user_id": str(user.id),
@@ -83,7 +82,6 @@ class AuthService:
 
     @classmethod
     async def get_or_create_user(cls, db: AsyncSession, email: str, name: str) -> User:
-        """Get existing user or create new one"""
         stmt = select(User).where(User.email == email)
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()

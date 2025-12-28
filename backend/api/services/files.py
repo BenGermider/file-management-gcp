@@ -4,16 +4,18 @@ import re
 from io import BytesIO
 from pathlib import Path
 from typing import List
+
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from google.cloud import storage
 from elasticsearch import AsyncElasticsearch
-
+from starlette import status
 from models.file import File
 from core.settings import settings
 from core.metrics import files_uploaded, upload_size_bytes, files_downloaded, download_size_bytes, files_deleted
+from starlette.status import HTTP_401_UNAUTHORIZED
 
 ALLOWED_MIME_TYPES = {
     "application/json": ".json",
@@ -26,7 +28,6 @@ MAX_FILES_PER_UPLOAD = 10
 
 
 class FileService:
-    """Complete file management with storage and search"""
 
     def __init__(self):
         self.use_gcs = settings.USE_GCS == "true"
@@ -34,21 +35,16 @@ class FileService:
             self.local_dir = Path("uploads")
             self.local_dir.mkdir(exist_ok=True)
 
-        # Elasticsearch
         self.es = AsyncElasticsearch(["http://elasticsearch:9200"])
         self.index_name = "files"
 
     async def init(self):
-        """Call on app startup"""
         await self._create_search_index()
 
     async def close(self):
-        """Call on app shutdown"""
         await self.es.close()
 
-    # ==================== SEARCH INDEX OPERATIONS ====================
     async def _create_search_index(self):
-        """Create Elasticsearch index"""
         index_exists = await self.es.indices.exists(index=self.index_name)
         if not index_exists:
             await self.es.indices.create(
@@ -89,7 +85,6 @@ class FileService:
             )
 
     async def _index_file_content(self, file_id: str, content: str) -> None:
-        """Index file content in Elasticsearch"""
         try:
             await self.es.index(
                 index=self.index_name,
@@ -104,7 +99,6 @@ class FileService:
             query: str,
             limit: int = 50
     ) -> list:
-        """Search file content, return file IDs"""
         try:
             es_query = {
                 "query": {
@@ -125,19 +119,17 @@ class FileService:
             raise Exception(f"Search failed: {str(e)}")
 
     async def _delete_from_search_index(self, file_id: str) -> None:
-        """Delete file from search index"""
         try:
             await self.es.delete(index=self.index_name, id=file_id, ignore=[404])
         except Exception as e:
             raise Exception(f"Failed to delete from index: {str(e)}")
 
-    # ==================== STORAGE OPERATIONS ====================
-    def _get_gcs_bucket(self):
-        """Get GCS bucket"""
-        gcs_client = storage.Client()
+    @staticmethod
+    def _get_gcs_bucket():
+        gcs_client = storage.Client(project=settings.GCP_PROJECT_ID)
         return gcs_client.bucket(settings.GCS_BUCKET_NAME)
 
-    async def _upload_to_storage(self, file_id: str, content: bytes, path: str) -> None:
+    async def _upload_to_storage(self, content: bytes, path: str) -> None:
         if self.use_gcs:
             bucket = self._get_gcs_bucket()
             blob = bucket.blob(path)
@@ -170,34 +162,49 @@ class FileService:
         output = f"{user['user_id']}/{file_id}{file_ext}"  # Use user_id instead of email
         return output if self.use_gcs else str(self.local_dir / output)
 
-    # ==================== VALIDATION ====================
-    async def _validate_files(self, files: list) -> None:
+    @staticmethod
+    async def _validate_files(files: list) -> None:
         if not files:
-            raise HTTPException(status_code=400, detail="No files provided")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No files provided"
+            )
         if len(files) > MAX_FILES_PER_UPLOAD:
-            raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES_PER_UPLOAD} files per upload")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Maximum {MAX_FILES_PER_UPLOAD} files per upload"
+            )
 
-    async def _validate_and_extract_file(self, file) -> tuple:
+    @staticmethod
+    async def _validate_and_extract_file(file) -> tuple:
         if not file.filename:
-            raise HTTPException(status_code=400, detail="File has no name")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="File has no name"
+            )
 
         content = await file.read()
         size = len(content)
 
         if size > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail=f"File exceeds {MAX_FILE_SIZE / (1024 * 1024):.0f}MB")
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds {MAX_FILE_SIZE / (1024 * 1024):.0f}MB"
+            )
 
         mime_type = file.content_type or "application/octet-stream"
         file_ext = ALLOWED_MIME_TYPES.get(mime_type)
 
         if not file_ext:
-            raise HTTPException(status_code=400,
-                                detail=f"File type {mime_type} not allowed. Only .json, .txt, .pdf are accepted.")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"File type {mime_type} not allowed. Only .json, .txt, .pdf are accepted."
+            )
 
         return str(uuid.uuid4()), mime_type, file_ext, content, size
 
-    async def _extract_text(self, content: bytes, file_ext: str) -> str:
-        """Extract text from file for indexing"""
+    @staticmethod
+    async def _extract_text(content: bytes, file_ext: str) -> str:
         try:
             if file_ext == ".pdf":
                 import PyPDF2
@@ -214,14 +221,12 @@ class FileService:
             print(f"Text extraction failed: {e}")
             return ""
 
-    # ==================== PUBLIC OPERATIONS ====================
     async def upload_files(
             self,
             files: List,
             db: AsyncSession,
             current_user: dict
     ) -> dict:
-        """Upload files to storage and index content"""
         await self._validate_files(files)
 
         uploaded = []
@@ -230,15 +235,11 @@ class FileService:
                 try:
                     file_id, mime_type, file_ext, content, size = await self._validate_and_extract_file(file)
                     path = self._generate_path(file_id, file_ext, current_user)
-
-                    # Upload to storage
                     await self._upload_to_storage(file_id, content, path)
 
-                    # Extract text and index in Elasticsearch
                     extracted_text = await self._extract_text(content, file_ext)
                     await self._index_file_content(file_id, extracted_text)
 
-                    # Save to database
                     db_file = File(
                         id=file_id,
                         name=file.filename,
@@ -262,7 +263,10 @@ class FileService:
 
                 except Exception as e:
                     await db.rollback()
-                    raise HTTPException(status_code=500, detail=f"Failed to upload {file.filename}: {str(e)}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Failed to upload {file.filename}: {str(e)}"
+                    )
 
         return {"uploaded": uploaded, "count": len(uploaded)}
 
@@ -300,20 +304,28 @@ class FileService:
             db: AsyncSession,
             current_user: dict
     ) -> StreamingResponse:
-        """Download a file"""
 
         result = await db.execute(select(File).where(File.id == file_id))
         db_file = result.scalar_one_or_none()
 
         if not db_file:
-            raise HTTPException(status_code=404, detail="File not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="File not found"
+            )
         if str(db_file.owner_id) != current_user["user_id"]:
-            raise HTTPException(status_code=403, detail="Not authorized")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized"
+            )
 
         try:
             content = await self._download_from_storage(db_file.file_path)
         except Exception:
-            raise HTTPException(status_code=500, detail="Failed to read file")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to read file"
+            )
 
         filename = db_file.name
         quoted = urllib.parse.quote(filename)
@@ -339,9 +351,15 @@ class FileService:
         db_file = result.scalar_one_or_none()
 
         if not db_file:
-            raise HTTPException(status_code=404, detail="File not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="File not found"
+            )
         if str(db_file.owner_id) != current_user["user_id"]:
-            raise HTTPException(status_code=403, detail="Not authorized")
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Not authorized"
+            )
 
         try:
             backup = await self._download_from_storage(db_file.file_path)
@@ -353,9 +371,12 @@ class FileService:
             files_deleted.inc()
 
         except Exception:
-            await self._upload_to_storage(db_file.id, backup, db_file.file_path)
+            await self._upload_to_storage(backup, db_file.file_path)
             await db.rollback()
-            raise HTTPException(status_code=500, detail="Failed to delete file")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete file"
+            )
 
 
 file_service = FileService()

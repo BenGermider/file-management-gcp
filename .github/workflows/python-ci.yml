@@ -19,17 +19,14 @@ jobs:
         python-version: [3.11]
 
     steps:
-      # 1. Checkout repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Set up Python
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 3. Cache pip dependencies
       - name: Cache pip
         uses: actions/cache@v3
         with:
@@ -38,7 +35,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # 4. Install dependencies
       - name: Install dependencies
         run: |
           cd backend
@@ -46,13 +42,11 @@ jobs:
           pip install -r requirements.txt
           pip install flake8
 
-      # 5. Run linting
       - name: Lint code with flake8
         working-directory: backend
         run: |
           flake8 api core db models schema tests --max-line-length=120
 
-      # 6. Run unit tests with coverage
       - name: Run unit tests
         working-directory: backend
         run: |
@@ -69,7 +63,15 @@ jobs:
       - name: Build and push backend
         run: |
           REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          docker build -f backend/Dockerfile -t ghcr.io/$REPO_OWNER_LOWER/file_management-backend:${{ github.sha }} .
+          docker build -f backend/Dockerfile -t ghcr.io/$REPO_OWNER_LOWER/file_management-backend:${{ github.sha }} ./backend
           docker tag ghcr.io/$REPO_OWNER_LOWER/file_management-backend:${{ github.sha }} ghcr.io/$REPO_OWNER_LOWER/file_management-backend:latest
           docker push ghcr.io/$REPO_OWNER_LOWER/file_management-backend:latest
           docker push ghcr.io/$REPO_OWNER_LOWER/file_management-backend:${{ github.sha }}
+
+      - name: Build and push frontend
+        run: |
+          REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          docker build -f frontend/Dockerfile -t ghcr.io/$REPO_OWNER_LOWER/file_management-frontend:${{ github.sha }} ./frontend
+          docker tag ghcr.io/$REPO_OWNER_LOWER/file_management-frontend:${{ github.sha }} ghcr.io/$REPO_OWNER_LOWER/file_management-frontend:latest
+          docker push ghcr.io/$REPO_OWNER_LOWER/file_management-frontend:latest
+          docker push ghcr.io/$REPO_OWNER_LOWER/file_management-frontend:${{ github.sha }}

@@ -3,35 +3,34 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Database
-    DB_USER: str = "fileuser"
-    DB_PASSWORD: str = ""
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "postgres"
     DB_NAME: str = "file_management"
 
-    # Cloud SQL connection name (format: project:region:instance)
     INSTANCE_CONNECTION_NAME: str = ""
 
-    # For local development
     DB_HOST: str = "localhost"
     DB_PORT: str = "5432"
 
+    FRONTEND_URL: str = "localhost:3000"
+
     ADMIN: list = []
 
-    # Google Cloud Storage
     USE_GCS: str = "false"
     GCS_BUCKET_NAME: str = ""
     GOOGLE_APPLICATION_CREDENTIALS: str = ""
+    GCP_PROJECT_ID: str = ""
 
     BASE_URL: str = "http://localhost:8000"
 
-    # Auth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:3000/oauth/callback"
+
     JWT_SECRET: str = ""
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION: int = 24
-    # Elasticsearch
+
     ELASTICSEARCH_URL: str = "http://elasticsearch:9200"
 
     @property

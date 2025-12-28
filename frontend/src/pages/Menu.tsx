@@ -50,7 +50,8 @@ const Dashboard = () => {
       if (fileTypeFilter) params.append("file_type", fileTypeFilter);
 
       const endpoint = viewAll ? "/api/admin/files" : "/api/files";
-      const res = await fetch(`http://localhost:8000${endpoint}?${params.toString()}`, {
+      const host = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${host}${endpoint}?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
@@ -95,7 +96,8 @@ const Dashboard = () => {
     setUploadProgress(0);
 
     try {
-      const res = await fetch("http://localhost:8000/api/files/upload", {
+      const host = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${host}/api/files/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -130,7 +132,8 @@ const Dashboard = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`http://localhost:8000/api/files/${fileId}`, {
+      const host = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${host}/api/files/${fileId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -151,7 +154,8 @@ const Dashboard = () => {
 
   const handleDownload = async (fileId: string, fileName: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/files/${fileId}/download`, {
+      const host = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${host}/api/files/${fileId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

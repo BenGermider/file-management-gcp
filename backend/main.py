@@ -8,13 +8,14 @@ from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
 from api.routes.admin import router as admin_router
 from api.services.files import file_service
+from core.settings import settings
 
 from db import init_models, dispose
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Try to initialize database with error handling
+
     try:
         await init_models()
         print("✓ Database initialized successfully")
@@ -22,7 +23,6 @@ async def lifespan(app: FastAPI):
         print(f"⚠ Warning: Database initialization failed: {e}")
         print("App will start anyway, but database operations may fail")
 
-    # Try to initialize file service
     try:
         await file_service.init()
         print("✓ File service initialized successfully")
@@ -31,7 +31,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Cleanup
     try:
         await file_service.close()
     except Exception as e:
@@ -57,7 +56,10 @@ Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        f"http://{settings.FRONTEND_URL}",
+        "http://localhost:3000",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -70,6 +72,3 @@ app.include_router(admin_router, prefix="/api/admin")
 @app.get("/health")
 def hello():
     return {"message": "Hello from backend"}
-
-
-EOF
