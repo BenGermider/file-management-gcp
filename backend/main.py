@@ -8,6 +8,7 @@ from api.routes.auth import router as auth_router
 from api.routes.files import router as files_router
 from api.routes.admin import router as admin_router
 from api.services.files import file_service
+from core.settings import settings
 
 from db import init_models, dispose
 
@@ -58,7 +59,7 @@ Instrumentator().instrument(app).expose(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://34.165.93.103:3000",
+        f"http://{settings.FRONTEND_URL}",
         "http://localhost:3000",
         "https://your-ngrok-url.ngrok-free.dev"
     ],
