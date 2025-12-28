@@ -5,8 +5,6 @@ from unittest.mock import AsyncMock
 from api.services.files import FileService
 
 
-# ------------------ Fixtures ------------------
-
 @pytest.fixture
 def mock_user():
     return {"user_id": "user-123"}
@@ -15,7 +13,6 @@ def mock_user():
 @pytest.fixture
 def service(mocker):
     svc = FileService()
-    # Mock external system calls
     mocker.patch.object(svc, "_upload_to_storage", AsyncMock())
     mocker.patch.object(svc, "_download_from_storage", AsyncMock())
     mocker.patch.object(svc, "_delete_from_storage", AsyncMock())
@@ -35,8 +32,6 @@ class FakeUploadFile:
     async def read(self):
         return self._content
 
-
-# ------------------ Tests ------------------
 
 @pytest.mark.asyncio
 async def test_upload_files_success(service, mock_db, mock_user):
@@ -78,13 +73,6 @@ async def test_download_file_not_found(service, mock_db, mock_user):
 
 @pytest.mark.asyncio
 async def test_download_file_not_owner(service, mock_db, mock_user):
-    """
-    FIXED: Your code accesses db_file.owner (the relationship), not owner_id
-    Since your code does: if db_file.owner != current_user["user_id"]
-    This is comparing a User object to a string, which will always be True (not equal)
-
-    We need to mock the owner relationship to return a user-like object
-    """
 
     class MockOwner:
         def __init__(self, user_id):
@@ -105,7 +93,7 @@ async def test_download_file_not_owner(service, mock_db, mock_user):
         name="a.txt",
         type="text/plain",
         owner_id="someone-else",
-        owner=mock_owner,  # The relationship returns a User object
+        owner=mock_owner,
         file_path="path"
     )
     mock_db.execute.return_value.scalar_one_or_none.return_value = file
@@ -117,9 +105,6 @@ async def test_download_file_not_owner(service, mock_db, mock_user):
 
 @pytest.mark.asyncio
 async def test_delete_file_success(service, mock_db, mock_user):
-    """
-    FIXED: Make the mock owner comparable to a string by implementing __eq__
-    """
 
     class MockOwner:
         def __init__(self, user_id):
@@ -139,7 +124,7 @@ async def test_delete_file_success(service, mock_db, mock_user):
     file = SimpleNamespace(
         id="1",
         owner_id="user-123",
-        owner=mock_owner,  # The relationship
+        owner=mock_owner,
         file_path="path"
     )
     mock_db.execute.return_value.scalar_one_or_none.return_value = file
@@ -164,9 +149,6 @@ async def test_delete_file_not_found(service, mock_db, mock_user):
 
 @pytest.mark.asyncio
 async def test_invalid_file_type(service, mock_db, mock_user):
-    """
-    Test that invalid file types are rejected
-    """
     fake_file = AsyncMock()
     fake_file.filename = "evil.exe"
     fake_file.content_type = "application/octet-stream"
@@ -174,7 +156,6 @@ async def test_invalid_file_type(service, mock_db, mock_user):
 
     with pytest.raises(HTTPException) as exc:
         await service.upload_files([fake_file], mock_db, mock_user)
-    # Adjust the expected status code based on your actual implementation
     assert exc.value.status_code in [400, 415, 500]
 
 
@@ -194,9 +175,6 @@ async def test_upload_success(service, mock_db, mock_user):
 
 @pytest.mark.asyncio
 async def test_download_forbidden(service, mock_db, mock_user):
-    """
-    FIXED: Use SimpleNamespace instead of real File object to avoid SQLAlchemy complications
-    """
 
     class MockOwner:
         def __init__(self, user_id):

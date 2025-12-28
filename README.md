@@ -125,3 +125,12 @@ docker-compose up -d
 I decided not to expose monitoring to the frontend, to not overload it. I thought it would look unrelated.
 However, to reach Prometheus (monitoring) type in browser ${HOST}:9090, and the Prometheus UI will open.
 There, client can type metrics queries.
+
+
+
+## Future / Missing Features
+- Run on Cloud Run
+- CI/CD to test frontend as well
+- Integration tests
+- E2E tests
+- Proper logging system

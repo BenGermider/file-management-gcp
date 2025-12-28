@@ -15,5 +15,4 @@ class File(Base):
     file_path = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationship
     owner = relationship("User", back_populates="files")

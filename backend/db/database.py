@@ -4,14 +4,12 @@ from core.settings import settings
 
 Base = declarative_base()
 
-# Create the URL immediately using your settings
 DATABASE_URL = (
     f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}"
     f"@{settings.DB_HOST}:{settings.DB_PORT}/"
     f"file_management"
 )
 
-# Initialize engine immediately so it's never None
 engine = create_async_engine(DATABASE_URL, echo=True)
 
 async_session = async_sessionmaker(

@@ -16,5 +16,4 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Relationship
     files = relationship("File", back_populates="owner")
